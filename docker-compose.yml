@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL con extensión PostGIS
+  postgres:
+    image: postgis/postgis:14-3.3
+    environment:
+      POSTGRES_USER: mexico_app
+      POSTGRES_PASSWORD: mexico_pass
+      POSTGRES_DB: mexico_indicators
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mexico_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Backend con FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://mexico_app:mexico_pass@postgres/mexico_indicators
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+  # Airflow para ETL
+  airflow-webserver:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    command: webserver
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://mexico_app:mexico_pass@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__WEBSERVER__SECRET_KEY=mexico_app_secret
+    volumes:
+      - ./etl/dags:/opt/airflow/dags
+      - ./etl/logs:/opt/airflow/logs
+      - ./etl/plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  airflow-scheduler:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    command: scheduler
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://mexico_app:mexico_pass@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./etl/dags:/opt/airflow/dags
+      - ./etl/logs:/opt/airflow/logs
+      - ./etl/plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+
+  # Redis para caché
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
