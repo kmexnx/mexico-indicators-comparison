@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # Base de datos PostgreSQL con extensión PostGIS
+  # Base de datos PostgreSQL normal (sin PostGIS)
   postgres:
-    image: postgis/postgis:14-3.3
+    image: postgres:14-alpine
     environment:
       POSTGRES_USER: mexico_app
       POSTGRES_PASSWORD: mexico_pass
