@@ -11,6 +11,6 @@ python-multipart==0.0.6
 httpx==0.24.1
 redis==4.6.0
 pandas==2.1.0
-geopandas==0.13.2
+# geopandas==0.13.2  # Comentado para evitar problemas con GDAL
 beautifulsoup4==4.12.2
 requests==2.31.0
