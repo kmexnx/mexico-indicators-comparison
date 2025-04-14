@@ -5,7 +5,7 @@ CREATE DATABASE mexico_indicators;
 \c mexico_indicators;
 
 -- Crear extensiones
-CREATE EXTENSION IF NOT EXISTS postgis;
+-- CREATE EXTENSION IF NOT EXISTS postgis; -- Comentado para evitar dependencia de PostGIS/GDAL
 CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- Para búsquedas de texto
 CREATE EXTENSION IF NOT EXISTS unaccent; -- Para búsquedas sin acentos
 
@@ -20,14 +20,6 @@ CREATE TABLE cities (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(name, state)
-);
-
--- Tabla para almacenar información geo
-CREATE TABLE city_geometries (
-    id SERIAL PRIMARY KEY,
-    city_id INTEGER REFERENCES cities(id) ON DELETE CASCADE,
-    geom GEOMETRY(MULTIPOLYGON, 4326),
-    UNIQUE(city_id)
 );
 
 -- Tabla de catálogo de indicadores
